@@ -5,6 +5,7 @@ import { ComparisonResult, UploadedFile, LinkResource, DocumentType, AnalysisMod
 // Helper to safely get API Key
 const getApiKey = (): string => {
   try {
+    // Check if process exists to avoid ReferenceError in strict browser environments
     if (typeof process !== 'undefined' && process.env) {
       return process.env.API_KEY || '';
     }
@@ -15,8 +16,18 @@ const getApiKey = (): string => {
 };
 
 const apiKey = getApiKey();
-// Initialize Gemini Client
-const ai = new GoogleGenAI({ apiKey });
+
+// Initialize Gemini Client safely
+// We use a fallback key to prevent the app from crashing on load if the key is missing.
+// The actual API call will fail gracefully with a specific error message.
+let ai: GoogleGenAI;
+try {
+    ai = new GoogleGenAI({ apiKey: apiKey || 'missing_api_key_placeholder' });
+} catch (error) {
+    console.error("Gemini Client Init Warning:", error);
+    // Fallback to ensure module exports don't fail
+    ai = new GoogleGenAI({ apiKey: 'fallback' });
+}
 
 // Helper to convert file to base64
 export const fileToGenerativePart = async (file: File): Promise<{ inlineData: { data: string; mimeType: string } }> => {
@@ -223,8 +234,8 @@ export const analyzeDocuments = async (
   vaultContext: string = ''
 ): Promise<ComparisonResult> => {
   
-  if (!apiKey) {
-    throw new Error("API Key is missing. Please configure REACT_APP_GEMINI_API_KEY.");
+  if (!apiKey || apiKey === 'missing_api_key_placeholder') {
+    throw new Error("API Key is missing. Please configure REACT_APP_GEMINI_API_KEY in your environment variables.");
   }
 
   const fileParts = await Promise.all(files.map(f => fileToGenerativePart(f.fileObject)));
@@ -331,7 +342,7 @@ export const analyzeDocuments = async (
 };
 
 export const extractDocumentFacts = async (file: UploadedFile): Promise<{summary: string, facts: FinancialFact[]}> => {
-  if (!apiKey) throw new Error("API Key Missing");
+  if (!apiKey || apiKey === 'missing_api_key_placeholder') throw new Error("API Key Missing");
   const filePart = await fileToGenerativePart(file.fileObject);
   
   const prompt = `
@@ -368,7 +379,7 @@ export const analyzeScenario = async (
   currentResult: ComparisonResult,
   modifiers: ScenarioModifiers
 ): Promise<ScenarioResult> => {
-  if (!apiKey) throw new Error("API Key Missing");
+  if (!apiKey || apiKey === 'missing_api_key_placeholder') throw new Error("API Key Missing");
   const promptText = `
     Perform a 'What-If' Scenario Analysis based on the previous financial context.
     
@@ -416,7 +427,7 @@ export const chatWithContext = async (
   newMessage: string,
   files: UploadedFile[]
 ) => {
-  if (!apiKey) throw new Error("API Key Missing");
+  if (!apiKey || apiKey === 'missing_api_key_placeholder') throw new Error("API Key Missing");
   
   const fileParts = await Promise.all(files.map(f => fileToGenerativePart(f.fileObject)));
 
