@@ -16,25 +16,38 @@ export const saveReport = (title: string, result: ComparisonResult, fileNames: s
     fileNames
   };
 
-  const existingData = localStorage.getItem(STORAGE_KEY);
-  const reports: SavedReport[] = existingData ? JSON.parse(existingData) : [];
-  
-  // Add to beginning
-  reports.unshift(newReport);
-  
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(reports));
+  try {
+    const existingData = localStorage.getItem(STORAGE_KEY);
+    const reports: SavedReport[] = existingData ? JSON.parse(existingData) : [];
+    
+    // Add to beginning
+    reports.unshift(newReport);
+    
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(reports));
+  } catch (e) {
+    console.warn("Storage quota exceeded or restricted:", e);
+  }
   return newReport;
 };
 
 export const getReports = (): SavedReport[] => {
-  const existingData = localStorage.getItem(STORAGE_KEY);
-  return existingData ? JSON.parse(existingData) : [];
+  try {
+    const existingData = localStorage.getItem(STORAGE_KEY);
+    return existingData ? JSON.parse(existingData) : [];
+  } catch (e) {
+    console.warn("Failed to retrieve reports:", e);
+    return [];
+  }
 };
 
 export const deleteReport = (id: string): void => {
-  const reports = getReports();
-  const filtered = reports.filter(r => r.id !== id);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+  try {
+    const reports = getReports();
+    const filtered = reports.filter(r => r.id !== id);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+  } catch (e) {
+    console.warn("Failed to delete report:", e);
+  }
 };
 
 export const getReportById = (id: string): SavedReport | undefined => {
