@@ -1,9 +1,27 @@
+
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+// Helper to safely get environment variables without crashing in browser
+const getEnv = (key: string, fallback: string = ''): string => {
+  try {
+    if (typeof process !== 'undefined' && process.env) {
+      return process.env[key] || fallback;
+    }
+  } catch (e) {
+    // process is not defined
+  }
+  return fallback;
+};
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Configuration as requested
+const supabaseUrl = 'https://qnxyyyhwdsxcqxeplgpc.supabase.co';
+const supabaseKey = getEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY', 'placeholder');
+
+if (supabaseKey === 'placeholder') {
+  console.warn("⚠️ SUPABASE_KEY is missing! Auth will not work. Check README.");
+}
+
+export const supabase = createClient(supabaseUrl, supabaseKey);
 
 export const signInWithGoogle = async () => {
   const { data, error } = await supabase.auth.signInWithOAuth({
