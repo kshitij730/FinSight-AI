@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { Lock, Mail, ArrowRight, ShieldCheck, Sparkles, AlertCircle, Loader2 } from 'lucide-react';
-import { supabase, signInWithGoogle } from '../services/supabase';
+import { Lock, Mail, ArrowRight, Sparkles, AlertCircle, Loader2 } from 'lucide-react';
 
 interface AuthProps {
   onLogin: () => void; // Callback when session is established
@@ -13,43 +12,21 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleEmailAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleMockLogin = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setLoading(true);
     setError(null);
 
-    try {
-      if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        if (error) throw error;
-        // App.tsx listener will handle the transition
-      } else {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-        });
-        if (error) throw error;
-        alert('Registration successful! Please check your email to confirm.');
+    // Simulate API delay
+    setTimeout(() => {
+      setLoading(false);
+      // Simulate simple validation
+      if (email && !email.includes('@')) {
+        setError("Please enter a valid email address.");
+        return;
       }
-    } catch (err: any) {
-      setError(err.message || 'Authentication failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGoogleLogin = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      await signInWithGoogle();
-    } catch (err: any) {
-      setError(err.message || 'Google login failed');
-      setLoading(false);
-    }
+      onLogin(); // Proceed to dashboard
+    }, 1500);
   };
 
   return (
@@ -85,9 +62,9 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
             </div>
           )}
 
-          {/* Google Login Button */}
+          {/* Google Login Button (Mock) */}
           <button
-            onClick={handleGoogleLogin}
+            onClick={() => handleMockLogin()}
             disabled={loading}
             className="w-full bg-white text-slate-700 font-bold py-3 rounded-xl flex items-center justify-center gap-3 hover:bg-slate-50 transition-all mb-4 shadow-md"
           >
@@ -99,7 +76,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                     <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.84z" />
                     <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                 </svg>
-                Continue with Google
+                Continue with Google (Demo)
               </>
             )}
           </button>
@@ -110,18 +87,17 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
             <div className="h-px bg-slate-600/50 flex-1"></div>
           </div>
 
-          <form onSubmit={handleEmailAuth} className="space-y-4">
+          <form onSubmit={handleMockLogin} className="space-y-4">
             <div className="group">
               <label className="block text-xs font-medium text-blue-200 mb-1 ml-1 uppercase tracking-wide">Email Address</label>
               <div className="relative transition-all duration-300 transform group-focus-within:scale-[1.02]">
                 <Mail className="absolute left-3 top-3 text-blue-300 w-5 h-5 group-focus-within:text-white transition-colors" />
                 <input 
                   type="email" 
-                  required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full pl-10 pr-4 py-3 bg-slate-800/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all shadow-inner"
-                  placeholder="name@company.com" 
+                  placeholder="demo@finsight.ai" 
                 />
               </div>
             </div>
@@ -132,7 +108,6 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                 <Lock className="absolute left-3 top-3 text-blue-300 w-5 h-5 group-focus-within:text-white transition-colors" />
                 <input 
                   type="password" 
-                  required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full pl-10 pr-4 py-3 bg-slate-800/50 border border-slate-600/50 rounded-xl text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all shadow-inner"
