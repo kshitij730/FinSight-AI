@@ -14,8 +14,8 @@ const getEnv = (key: string, fallback: string): string => {
 };
 
 // Use fallbacks so the app initializes even without keys (prevents white screen)
-const supabaseUrl = getEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://placeholder.supabase.co');
-const supabaseAnonKey = getEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY', 'placeholder');
+const supabaseUrl = getEnv('SUPABASE_URL', 'https://placeholder.supabase.co');
+const supabaseAnonKey = getEnv('SUPABASE_ANON_KEY', 'placeholder');
 
 if (supabaseUrl === 'https://placeholder.supabase.co') {
   console.warn("⚠️ Supabase credentials missing! Auth will not work. Check README.");
