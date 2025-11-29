@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Upload, Link as LinkIcon, File as FileIcon, Trash2, Play, Sparkles, X, Plus, ArrowRight, Loader2, AlertCircle, History, LayoutDashboard, Settings, LogOut, ChevronRight, Save, BarChart3, Scale, Layers, Blocks, BrainCircuit, Lock, ShieldCheck, Database, User } from 'lucide-react';
 import { UploadedFile, LinkResource, AnalysisStatus, ComparisonResult, ViewState, SavedReport, DocumentType, AnalysisMode, Plugin, Integration, PrivacySettings } from './types';
@@ -10,7 +9,6 @@ import Vault from './components/Vault';
 import { analyzeDocuments } from './services/gemini';
 import { saveReport, getReports, getReportById } from './services/storage';
 import { indexDocumentToVault, retrieveContext } from './services/memory';
-import { supabase, signOut } from './services/supabase';
 
 const App: React.FC = () => {
   const [viewState, setViewState] = useState<ViewState>(ViewState.AUTH);
@@ -23,7 +21,7 @@ const App: React.FC = () => {
   const [analysisMode, setAnalysisMode] = useState<AnalysisMode>('PERIOD_VS_PERIOD');
   const [privacySettings, setPrivacySettings] = useState<PrivacySettings>({ secureMode: true });
   
-  // Auth State
+  // Auth State (Mock)
   const [user, setUser] = useState<any>(null);
 
   // History State
@@ -44,27 +42,6 @@ const App: React.FC = () => {
     { id: 'salesforce', name: 'Salesforce', description: 'CRM pipeline and deal forecasting.', icon: 'https://upload.wikimedia.org/wikipedia/commons/f/f9/Salesforce.com_logo.svg', status: 'DISCONNECTED', mockContext: '' },
   ]);
 
-  // Auth Listener
-  useEffect(() => {
-    // Only attempt to check session if supabase is properly initialized
-    // (supabase is always initialized with fallback, but we should be careful)
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setViewState(session ? ViewState.DASHBOARD : ViewState.AUTH);
-    }).catch(e => console.log('Auth session check failed (expected if no keys):', e));
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (session) {
-         setViewState(ViewState.DASHBOARD);
-      } else {
-         setViewState(ViewState.AUTH);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
   // Load history on mount
   useEffect(() => {
     if (viewState === ViewState.DASHBOARD) {
@@ -72,8 +49,14 @@ const App: React.FC = () => {
     }
   }, [viewState]);
 
+  const handleLogin = () => {
+    // Mock successful login
+    setUser({ email: 'demo@finsight.ai' });
+    setViewState(ViewState.DASHBOARD);
+  };
+
   const handleSignOut = async () => {
-    await signOut();
+    setUser(null);
     setViewState(ViewState.AUTH);
   };
 
@@ -208,7 +191,7 @@ const App: React.FC = () => {
   };
 
   if (viewState === ViewState.AUTH) {
-    return <Auth onLogin={() => {}} />;
+    return <Auth onLogin={handleLogin} />;
   }
 
   // Sidebar Component
