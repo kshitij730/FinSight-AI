@@ -2,8 +2,21 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { ComparisonResult, UploadedFile, LinkResource, DocumentType, AnalysisMode, ScenarioModifiers, ScenarioResult, Plugin, Integration, FinancialFact } from "../types";
 
+// Helper to safely get API Key
+const getApiKey = (): string => {
+  try {
+    if (typeof process !== 'undefined' && process.env) {
+      return process.env.API_KEY || '';
+    }
+  } catch (e) {
+    return '';
+  }
+  return '';
+};
+
+const apiKey = getApiKey();
 // Initialize Gemini Client
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const ai = new GoogleGenAI({ apiKey });
 
 // Helper to convert file to base64
 export const fileToGenerativePart = async (file: File): Promise<{ inlineData: { data: string; mimeType: string } }> => {
@@ -97,7 +110,7 @@ const comparisonSchema: Schema = {
         },
         required: ["type", "category", "message"]
       },
-      description: "Detect anomalies: Cashflow drops, expense spikes, payroll increases, or negative ratio trends."
+      description: "Detect anomalies: Cashflow drops, expense spikes, payroll increases, or negative financial ratio trends."
     },
     pluginData: {
       type: Type.OBJECT,
@@ -210,6 +223,10 @@ export const analyzeDocuments = async (
   vaultContext: string = ''
 ): Promise<ComparisonResult> => {
   
+  if (!apiKey) {
+    throw new Error("API Key is missing. Please configure REACT_APP_GEMINI_API_KEY.");
+  }
+
   const fileParts = await Promise.all(files.map(f => fileToGenerativePart(f.fileObject)));
   
   // Detect primary document type for better prompting
@@ -314,6 +331,7 @@ export const analyzeDocuments = async (
 };
 
 export const extractDocumentFacts = async (file: UploadedFile): Promise<{summary: string, facts: FinancialFact[]}> => {
+  if (!apiKey) throw new Error("API Key Missing");
   const filePart = await fileToGenerativePart(file.fileObject);
   
   const prompt = `
@@ -350,6 +368,7 @@ export const analyzeScenario = async (
   currentResult: ComparisonResult,
   modifiers: ScenarioModifiers
 ): Promise<ScenarioResult> => {
+  if (!apiKey) throw new Error("API Key Missing");
   const promptText = `
     Perform a 'What-If' Scenario Analysis based on the previous financial context.
     
@@ -397,6 +416,7 @@ export const chatWithContext = async (
   newMessage: string,
   files: UploadedFile[]
 ) => {
+  if (!apiKey) throw new Error("API Key Missing");
   
   const fileParts = await Promise.all(files.map(f => fileToGenerativePart(f.fileObject)));
 
