@@ -2,7 +2,6 @@ import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { ComparisonResult, UploadedFile, LinkResource, DocumentType, AnalysisMode, ScenarioModifiers, ScenarioResult, Plugin, Integration, FinancialFact } from "../types";
 
 // --- ROBUST API KEY RETRIEVAL ---
-// This function ensures the app doesn't crash if 'process' is undefined (common in browser/vite/esbuild envs)
 const getApiKey = (): string => {
   try {
     // 1. Check standard node-style process.env
@@ -19,26 +18,27 @@ const getApiKey = (): string => {
         if (import.meta.env.GEMINI_API_KEY) return import.meta.env.GEMINI_API_KEY;
     }
   } catch (e) {
-    // Silently fail if environment access is restricted
     console.warn("Could not access environment variables safely.");
   }
   return '';
 };
 
 const apiKey = getApiKey();
-const IS_KEY_VALID = !!apiKey && apiKey !== 'missing_api_key_placeholder';
 
-// Initialize Gemini Client safely.
-// We NEVER throw here, because throwing at the top level causes a "White Screen of Death" 
-// before the React app can even mount.
+// EXPORT STATUS SO APP CAN DISPLAY BLOCKING ERROR IMMEDIATELY
+export const initializationError = !apiKey 
+  ? "CRITICAL CONFIG ERROR: GEMINI_API_KEY is missing. The application cannot start." 
+  : null;
+
 let ai: GoogleGenAI;
-try {
-    // If key is missing, we use a dummy so the object exists. We will check IS_KEY_VALID later.
-    ai = new GoogleGenAI({ apiKey: apiKey || 'dummy_key_for_init' });
-} catch (error) {
-    console.error("Gemini Client Init Warning:", error);
-    // Absolute fallback to ensure the module exports valid objects
-    ai = new GoogleGenAI({ apiKey: 'fallback_init_key' });
+
+// STRICT INITIALIZATION: Do not use dummy keys.
+if (apiKey) {
+    try {
+        ai = new GoogleGenAI({ apiKey: apiKey });
+    } catch (error: any) {
+        console.error("Gemini Client Init Failed:", error);
+    }
 }
 
 // Helper to convert file to base64
@@ -246,10 +246,8 @@ export const analyzeDocuments = async (
   vaultContext: string = ''
 ): Promise<ComparisonResult> => {
   
-  // LAZY VALIDATION: We only throw the error when the user actually tries to do something.
-  // This prevents the "White Screen" on startup.
-  if (!IS_KEY_VALID) {
-    throw new Error("Configuration Error: GEMINI_API_KEY is missing. Please set this environment variable in your project settings.");
+  if (initializationError || !ai) {
+    throw new Error(initializationError || "Gemini Client is not initialized.");
   }
 
   const fileParts = await Promise.all(files.map(f => fileToGenerativePart(f.fileObject)));
@@ -350,7 +348,7 @@ export const analyzeDocuments = async (
 };
 
 export const extractDocumentFacts = async (file: UploadedFile): Promise<{summary: string, facts: FinancialFact[]}> => {
-  if (!IS_KEY_VALID) throw new Error("Configuration Error: GEMINI_API_KEY Missing");
+  if (initializationError || !ai) throw new Error("Gemini Client Not Initialized");
   const filePart = await fileToGenerativePart(file.fileObject);
   
   const prompt = `
@@ -387,7 +385,7 @@ export const analyzeScenario = async (
   currentResult: ComparisonResult,
   modifiers: ScenarioModifiers
 ): Promise<ScenarioResult> => {
-  if (!IS_KEY_VALID) throw new Error("Configuration Error: GEMINI_API_KEY Missing");
+  if (initializationError || !ai) throw new Error("Gemini Client Not Initialized");
   const promptText = `
     Perform a 'What-If' Scenario Analysis based on the previous financial context.
     
@@ -435,7 +433,7 @@ export const chatWithContext = async (
   newMessage: string,
   files: UploadedFile[]
 ) => {
-  if (!IS_KEY_VALID) throw new Error("Configuration Error: GEMINI_API_KEY Missing");
+  if (initializationError || !ai) throw new Error("Gemini Client Not Initialized");
   
   const fileParts = await Promise.all(files.map(f => fileToGenerativePart(f.fileObject)));
 
