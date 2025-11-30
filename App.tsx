@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Upload, Link as LinkIcon, File as FileIcon, Trash2, Play, Sparkles, X, Plus, ArrowRight, Loader2, AlertCircle, History, LayoutDashboard, Settings, LogOut, ChevronRight, Save, BarChart3, Scale, Layers, Blocks, BrainCircuit, Lock, ShieldCheck, Database, User } from 'lucide-react';
 import { UploadedFile, LinkResource, AnalysisStatus, ComparisonResult, ViewState, SavedReport, DocumentType, AnalysisMode, Plugin, Integration, PrivacySettings } from './types';
@@ -10,7 +11,44 @@ import { analyzeDocuments } from './services/gemini';
 import { saveReport, getReports, getReportById } from './services/storage';
 import { indexDocumentToVault, retrieveContext } from './services/memory';
 
-const App: React.FC = () => {
+// Error Boundary Component
+class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean, error: Error | null}> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-red-50 p-8">
+          <div className="bg-white p-8 rounded-2xl shadow-xl max-w-lg w-full border border-red-100">
+            <h2 className="text-2xl font-bold text-red-600 mb-4 flex items-center gap-2">
+              <AlertCircle className="w-8 h-8" /> Application Error
+            </h2>
+            <p className="text-slate-600 mb-4">Something went wrong while rendering the application UI.</p>
+            <pre className="bg-slate-100 p-4 rounded-lg text-xs overflow-auto mb-6 text-slate-700">
+              {this.state.error?.message}
+            </pre>
+            <button 
+              onClick={() => window.location.reload()}
+              className="w-full py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition"
+            >
+              Reload Application
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+const AppContent: React.FC = () => {
   const [viewState, setViewState] = useState<ViewState>(ViewState.AUTH);
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [links, setLinks] = useState<LinkResource[]>([]);
@@ -21,7 +59,7 @@ const App: React.FC = () => {
   const [analysisMode, setAnalysisMode] = useState<AnalysisMode>('PERIOD_VS_PERIOD');
   const [privacySettings, setPrivacySettings] = useState<PrivacySettings>({ secureMode: true });
   
-  // Auth State (Mock)
+  // Local Mock User State
   const [user, setUser] = useState<any>(null);
 
   // History State
@@ -50,7 +88,7 @@ const App: React.FC = () => {
   }, [viewState]);
 
   const handleLogin = () => {
-    // Mock successful login
+    // Simulate Login
     setUser({ email: 'demo@finsight.ai' });
     setViewState(ViewState.DASHBOARD);
   };
@@ -574,5 +612,14 @@ const App: React.FC = () => {
     </div>
   );
 };
+
+// Wrap main app with Error Boundary
+const App: React.FC = () => {
+    return (
+        <ErrorBoundary>
+            <AppContent />
+        </ErrorBoundary>
+    );
+}
 
 export default App;
