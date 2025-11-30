@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
@@ -184,8 +183,12 @@ const Analysis: React.FC<AnalysisProps> = ({ result, onBack, onSave, savedDate, 
         margin: { left: margin, right: margin }
     });
 
-    // Reset cursor after table
-    cursorY = (doc as any).lastAutoTable.finalY + 15;
+    // Reset cursor after table safely
+    if ((doc as any).lastAutoTable) {
+        cursorY = (doc as any).lastAutoTable.finalY + 15;
+    } else {
+        cursorY += 50; // Fallback
+    }
 
     // Risks
     addSectionTitle("Risk Profile & Assessment");
@@ -228,7 +231,12 @@ const Analysis: React.FC<AnalysisProps> = ({ result, onBack, onSave, savedDate, 
             },
             margin: { left: margin, right: margin }
         });
-        cursorY = (doc as any).lastAutoTable.finalY + 15;
+        
+        if ((doc as any).lastAutoTable) {
+            cursorY = (doc as any).lastAutoTable.finalY + 15;
+        } else {
+            cursorY += 50; 
+        }
     }
 
     // Historical Context if available
@@ -246,7 +254,7 @@ const Analysis: React.FC<AnalysisProps> = ({ result, onBack, onSave, savedDate, 
     }
 
     // Footer Numbering
-    const pageCount = doc.internal.getNumberOfPages();
+    const pageCount = (doc as any).internal.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
       doc.setFontSize(8);
