@@ -1,16 +1,16 @@
-
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { ComparisonResult, UploadedFile, LinkResource, DocumentType, AnalysisMode, ScenarioModifiers, ScenarioResult, Plugin, Integration, FinancialFact } from "../types";
 
-// Helper to safely get API Key
+// Helper to safely get API Key without crashing in browser environments
 const getApiKey = (): string => {
   try {
-    // Check if process exists to avoid ReferenceError in strict browser environments
+    // Try standard REACT_APP_ prefix first (common in React apps)
     if (typeof process !== 'undefined' && process.env) {
-      return process.env.API_KEY || '';
+      if (process.env.REACT_APP_GEMINI_API_KEY) return process.env.REACT_APP_GEMINI_API_KEY;
+      if (process.env.API_KEY) return process.env.API_KEY;
     }
   } catch (e) {
-    return '';
+    // Ignore ReferenceError if process is not defined
   }
   return '';
 };
@@ -25,8 +25,8 @@ try {
     ai = new GoogleGenAI({ apiKey: apiKey || 'missing_api_key_placeholder' });
 } catch (error) {
     console.error("Gemini Client Init Warning:", error);
-    // Fallback to ensure module exports don't fail
-    ai = new GoogleGenAI({ apiKey: 'fallback' });
+    // Fallback to ensure module exports don't fail, utilizing a dummy key
+    ai = new GoogleGenAI({ apiKey: 'fallback_init_key' });
 }
 
 // Helper to convert file to base64
@@ -240,11 +240,9 @@ export const analyzeDocuments = async (
 
   const fileParts = await Promise.all(files.map(f => fileToGenerativePart(f.fileObject)));
   
-  // Detect primary document type for better prompting
   const distinctTypes = Array.from(new Set(files.map(f => f.docType || 'OTHER')));
   const docTypeContext = distinctTypes.join(', ');
 
-  // Construct prompt
   let promptText = `
     You are a senior Chief Financial Officer and Data Scientist using Predictive Analytics.
     Task: Conduct a deep-dive forensic analysis of the attached documents.
@@ -252,12 +250,10 @@ export const analyzeDocuments = async (
     Document Context: These appear to be ${docTypeContext} documents. Adjust your extraction logic accordingly.
   `;
 
-  // --- PHASE 4: VAULT CONTEXT INJECTION ---
   if (vaultContext) {
     promptText += `\n\n${vaultContext}\n\nINSTRUCTION: The above 'Knowledge Vault' contains historical data and facts from previous documents. Use this to identify LONG-TERM TRENDS, RECURRING ANOMALIES, or CONTRADICTIONS between past and present data. Populate the 'historicalContext' field with these findings.`;
   }
 
-  // --- PHASE 3: CONTEXT INJECTION FROM INTEGRATIONS ---
   if (activeIntegrations.length > 0) {
     promptText += `\n\n### INTEGRATED DATA SOURCES (LIVE CONTEXT) ###\n`;
     activeIntegrations.forEach(int => {
@@ -266,7 +262,6 @@ export const analyzeDocuments = async (
     promptText += `\nINSTRUCTION: Cross-reference the uploaded documents with this live data. Highlight discrepancies between the documents and the integrated data sources in the 'Risk' and 'Alerts' sections.\n`;
   }
 
-  // --- PHASE 3: PLUGIN INSTRUCTIONS ---
   if (activePlugins.length > 0) {
     promptText += `\n\n### ACTIVE ANALYTICS PLUGINS ###\n`;
     activePlugins.forEach(p => {
@@ -309,7 +304,6 @@ export const analyzeDocuments = async (
     IMPORTANT: Be extremely precise with numbers.
   `;
 
-  // Determine tools configuration
   const tools = links.length > 0 ? [{ googleSearch: {} }] : [];
 
   try {
